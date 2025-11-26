@@ -1,0 +1,125 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Employee";
+}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<div class="container mt-4">
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <h3 class="fw-bold">Procurement Workspace</h3>
+            <p class="text-muted">Welcome, @Context.Session.GetString("Name")</p>
+        </div>
+        <div class="col-auto">
+            <form method="post" asp-controller="Employee" asp-action="Logout" class="m-0">
+                <button type="submit" class="btn btn-light border shadow-sm px-3 py-1">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </form>
+            <span class="badge bg-primary">Employee</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Employee/Requisition" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon">
+                        <i class="bi bi-bag-plus"></i>
+                    </div>
+                    <div class="fusion-card-title">Procurement Requisition</div>
+                    <div class="fusion-card-desc">Create a new material request</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Employee/AddNonCatalog" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div class="fusion-card-title">Add Non-Catalog Items</div>
+                    <div class="fusion-card-desc">Propose new catalog additions</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Employee/TransactionConsole" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <div class="fusion-card-title">Transaction Console</div>
+                    <div class="fusion-card-desc">Track request & approval status</div>
+                </div>
+            </a>
+        </div>
+
+    </div>
+    <div class="mt-5"></div>
+
+    <footer class="fusion-footer text-center py-3">
+        <span>© Procurement Suite • Internal Use Only</span>
+    </footer>
+</div>
+
+
+<style>
+    body {
+        background: linear-gradient(to bottom, #fbfcff 0%, #f2f5fa 100%) !important;
+        font-family: "Segoe UI", sans-serif;
+    }
+
+    .user-pill {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #dee1e6;
+        font-weight: 600;
+    }
+
+    .fusion-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 24px 20px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        cursor: pointer;
+        transition: all .25s;
+        text-align: left;
+    }
+
+        .fusion-card:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            transform: translateY(-4px);
+        }
+
+    .fusion-card-icon {
+        font-size: 30px;
+        color: #0077FF;
+        margin-bottom: 14px;
+    }
+
+    .fusion-card-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #1a1c1f;
+    }
+
+    .fusion-card-desc {
+        color: #606366;
+        font-size: 14px;
+    }
+
+    .fusion-footer {
+        color: #7a7d81;
+        font-size: 13px;
+        border-top: 1px solid #e3e4e5;
+        background: #fafbfc;
+    }
+</style>
+

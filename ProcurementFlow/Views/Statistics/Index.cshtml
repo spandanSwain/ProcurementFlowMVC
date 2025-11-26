@@ -1,0 +1,290 @@
+﻿@model ProcurementFlow.Models.Statistics.StatisticsViewModel;
+@{
+    ViewData["Title"] = "Dashboard Statistics";
+}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .kpi-card {
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .kpi-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .kpi-label {
+        color: #6c757d;
+    }
+
+    .fusion-card {
+        padding: 18px;
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        background: #fff;
+    }
+
+    .fusion-card-icon {
+        font-size: 28px;
+    }
+
+    .small-muted {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .chart-card {
+        min-height: 320px;
+    }
+
+    .table-small {
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0">Organization — Dashboard Statistics</h3>
+            <div class="small-muted">Company-wide procurement trends and KPIs</div>
+        </div>
+        <div>
+            <a asp-action="Index" asp-controller="@Context.Session.GetString("Redirect")" class="btn btn-secondary">
+                <i class="bi bi-arrow-left-circle me-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Row: KPIs -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-2 col-sm-4 col-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-label">Total Reqs</div>
+                <div class="kpi-value">@Model.TotalKPIStats!.TotalRequisitions</div>
+                <div class="small-muted">All time</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-label">Total Approved</div>
+                <div class="kpi-value">@Model.TotalKPIStats.TotalApproved</div>
+                <div class="small-muted">All time</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-label">Total Rejected</div>
+                <div class="kpi-value">@Model.TotalKPIStats.TotalRejected</div>
+                <div class="small-muted">All time</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-label">Total Spend</div>
+                <div class="kpi-value">₹@Model.TotalKPIStats.TotalSpent</div>
+                <div class="small-muted">Monetary value</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-label">Avg Approval Time</div>
+                <div class="kpi-value">@Model.TotalKPIStats.AverageDelay days</div>
+                <div class="small-muted">Created → Approved</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row: Charts with Pie spanning two rows -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7 d-flex flex-column gap-4">
+            <div class="card p-3 chart-card flex-grow-1">
+                <div class="d-flex justify-content-between mb-2">
+                    <h6 class="mb-0">Spend by Month</h6>
+                    <div class="small-muted">Monthly trend</div>
+                </div>
+                <canvas id="chartSpendByMonth"></canvas>
+            </div>
+            <div class="card p-3 chart-card flex-grow-1">
+                <div class="d-flex justify-content-between mb-2">
+                    <h6 class="mb-0">Top Managers (by Approvals)</h6>
+                    <div class="small-muted">Top performers</div>
+                </div>
+                <canvas id="chartTopManagers"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-5 d-flex flex-column">
+            <div class="card p-3 chart-card flex-grow-1 h-100">
+                <div class="d-flex justify-content-between mb-2">
+                    <h6 class="mb-0">Spend by Category</h6>
+                    <div class="small-muted">Organization level</div>
+                </div>
+                <canvas id="chartSpendByCategory"></canvas>
+                <div class="mt-3">
+                    @if (Model.SpendPerCategory != null && Model.SpendPerCategory.Any()){
+                        <table class="table table-sm mb-0">
+                            @foreach(var item in Model.SpendPerCategory){
+                                <tr>
+                                    <td>@item.CategoryName)</td>
+                                    <td>₹@item.CategorySpending</td>
+                                </tr>
+                            }
+                        </table>
+                    }
+                    else{
+                        <p class="text-muted">No results found</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row: Funnel + Top Requisitions table -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card p-3 h-100">
+                <h6>PO Pipeline</h6>
+                <div class="small-muted mb-3">Stage counts across the organization</div>
+                <div id="funnelList"></div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card p-3 h-100">
+                <div class="d-flex justify-content-between mb-2">
+                    <h6 class="mb-0">Top Requisitions (by Value)</h6>
+                    <div class="small-muted">High-value items</div>
+                </div>
+                <div class="table-responsive">
+                    @if(Model.TopRequisitions != null && Model.TopRequisitions.Any()){
+                        <table class="table table-hover table-small mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>@Html.DisplayNameFor(m => m.TopRequisitions[0].ReqId)</th>
+                                    <th>@Html.DisplayNameFor(m => m.TopRequisitions[0].Requester)</th>
+                                    <th>@Html.DisplayNameFor(m => m.TopRequisitions[0].Category)</th>
+                                    <th>@Html.DisplayNameFor(m => m.TopRequisitions[0].Value)</th>
+                                    <th>@Html.DisplayNameFor(m => m.TopRequisitions[0].Status)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach(var item in Model.TopRequisitions){
+                                    <tr>
+                                        <td>@item.ReqId</td>
+                                        <td>@item.Requester</td>
+                                        <td>@item.Category</td>
+                                        <td>₹@item.Value.ToString("N2")</td>
+                                        <td>@item.Status</td>
+                                    </tr>
+                                }                                
+                            </tbody>
+                        </table>
+                    }
+                    else{
+                        <p class="text-muted">No results found</p>
+                    }                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function colorFromString(str) {
+        let hash = 0;
+        for (let i=0;i<str.length;i++) { hash = str.charCodeAt(i) + ((hash<<5)-hash); }
+        const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+        return `#${"00000".substring(0,6 - c.length) + c}`;
+    }
+
+    function colorsForLabels(labels) {
+        return labels.map(l => colorFromString(l));
+    }
+
+    // JSON init
+    const spendByMonthLabels = @Html.Raw(Json.Serialize(Model.MonthlyTrend!.Select(x => x.Month)));
+    const spendByMonthValues = @Html.Raw(Json.Serialize(Model.MonthlyTrend!.Select(x => x.MonthlySpend)));
+
+    const spendByCategoryLabels = @Html.Raw(Json.Serialize(Model.SpendPerCategory!.Select(x => x.CategoryName)));
+    const spendByCategoryValues = @Html.Raw(Json.Serialize(Model.SpendPerCategory!.Select(x => x.CategorySpending)));
+
+    const topManagersLabels = @Html.Raw(Json.Serialize(Model.TopManagers!.Select(x => x.ManagerName)));
+    const topManagersValues = @Html.Raw(Json.Serialize(Model.TopManagers!.Select(x => x.TotalApprovalsByManager)));
+
+    // if @@Model.PurchaseOrderPipeline was a List we could have proceeded like this
+    // const topManagers = topManagersLabels.map((label, index)=>{
+    //     return {
+    //         name: label,
+    //         count: topManagersValues[index]
+    //     }
+    // });
+    // console.log(topManagers);
+
+    const funnelStages = [
+        { name: "Created", count: @Model.PurchaseOrderPipeline!.POTotalCreated },
+        { name: "Reviewed", count: @Model.PurchaseOrderPipeline!.POTotalReview },
+        { name: "Approved", count: @Model.PurchaseOrderPipeline!.POTotalApproved },
+    ];
+
+    // Monthly Spending
+    const ctxMonth = document.getElementById('chartSpendByMonth').getContext('2d');
+    new Chart(ctxMonth, {
+        type: 'line',
+        data: {
+            labels: spendByMonthLabels,
+            datasets: [{ label: 'Spend', data: spendByMonthValues, fill:true, tension:0.3 }]
+        },
+        options: { responsive:true, scales: { y: { beginAtZero:true } } }
+    });
+
+    // Spending per Category
+    const ctxCat = document.getElementById('chartSpendByCategory').getContext('2d');
+    new Chart(ctxCat, {
+        type: 'pie',
+        data: {
+            labels: spendByCategoryLabels,
+            datasets: [{ data: spendByCategoryValues, backgroundColor: colorsForLabels(spendByCategoryLabels) }]
+        },
+        options: { responsive:true }
+    });
+
+    // Top Managers
+    const ctxManagers = document.getElementById('chartTopManagers').getContext('2d');
+    new Chart(ctxManagers, {
+        type: 'bar',
+        data: {
+            labels: topManagersLabels,
+            datasets: [{ label:'Approvals', data: topManagersValues }]
+        },
+        options: { responsive:true, indexAxis: 'y', scales:{ x:{ beginAtZero:true } } }
+    });
+
+    // Purchase Order Pipeline
+    const funnelContainer = document.getElementById('funnelList');
+    if (funnelStages && funnelStages.length) {
+        funnelStages.forEach((s, idx) => {
+            const pct = Math.round((s.count / funnelStages[0].count) * 100);
+            const item = document.createElement('div');
+            item.className = 'mb-3';
+            item.innerHTML = `
+                <div class="d-flex justify-content-between small-muted mb-1"><div>${s.name}</div><div>${s.count}</div></div>
+                <div class="progress" style="height:12px;border-radius:8px;">
+                    <div class="progress-bar" role="progressbar" style="width:${pct}%" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            `;
+            funnelContainer.appendChild(item);
+        });
+    } else {
+        funnelContainer.innerHTML = '<div class="small-muted">No pipeline data available.</div>';
+    }
+</script>

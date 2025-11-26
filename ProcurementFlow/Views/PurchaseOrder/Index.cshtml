@@ -1,0 +1,312 @@
+﻿@model ProcurementFlow.Models.PurchaseOrder.PurchaseOrderViewModel;
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Purchase Order";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<div class="card shadow-sm p-3 mt-3">
+    <h3 class="fw-bold mb-3">Purchase Order</h3>
+    <p class="text-muted mb-3">Pending requisitions to be addressed</p>
+    <hr />
+
+    <div style="max-height: 300px; overflow-y: auto;">
+        @if (Model.PendingRequisitions != null && Model.PendingRequisitions.Any()){
+            <table class="table table-sm table-bordered align-middle text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th>@Html.DisplayNameFor(m => m.PendingRequisitions![0].ItemName)</th>
+                        <th>@Html.DisplayNameFor(m => m.PendingRequisitions![0].Quantity)</th>
+                        <th>@Html.DisplayNameFor(m => m.PendingRequisitions![0].UOM)</th>
+                        <th>@Html.DisplayNameFor(m => m.PendingRequisitions![0].CalculatedPrice)</th>
+                        <th>@Html.DisplayNameFor(m => m.PendingRequisitions![0].Urgent)</th>
+                        <th>@Html.DisplayNameFor(m => m.PendingRequisitions![0].PriorityStatus)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for(int i=0; i<Model.PendingRequisitions.Count; i++){
+                        var item = Model.PendingRequisitions[i];
+                        <tr>
+                            <td>@item.ItemName</td>
+                            <td>@item.Quantity</td>
+                            <td>@item.UOM</td>
+                            <td>₹@item.CalculatedPrice.ToString("N2")</td>
+                            <td>
+                                <span class="badge @(item.Urgent == "Yes" ? "bg-danger": "bg-secondary")">
+                                    @item.Urgent
+                                </span>
+                            </td>
+                            <td>
+                                @if(item.PriorityStatus == 1){
+                                    <span class="badge bg-danger">Immediate Review</span>
+                                }
+                                else if(item.PriorityStatus == 2){
+                                    <span class="badge bg-info">Important</span>
+                                }
+                                else{
+                                    <span class="badge bg-success">Normal</span>
+                                }
+                            </td>
+                            <td>
+                                <input type="hidden" class="hdn-idx" value="@i"/>
+                                <input type="hidden" class="hdn-req-id" value="@item.Id"/>
+                                <button type="button" class="btn btn-outline-primary btn-sm review-btn">
+                                    <i class="bi bi-eye me-1"></i> Review
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="mt-2 @(Model.PendingRequisitions.TotalPages > 1 ? "d-flex justify-content-between":"d-none")">
+                @{
+                    var prevDisabled = !Model.PendingRequisitions.HasPreviousPage ? "disabled" : "";
+                    var nextDisabled = !Model.PendingRequisitions.HasNextPage ? "disabled" : "";
+                }
+                <a asp-action="Index"
+                   asp-route-page="@(Model.PendingRequisitions.PageIndex - 1)"
+                   class="btn btn-outline-dark @prevDisabled">Previous</a>
+
+                <span>Page @Model.PendingRequisitions.PageIndex of @Model.PendingRequisitions.TotalPages</span>
+
+                <a asp-action="Index"
+                   asp-route-page="@(Model.PendingRequisitions.PageIndex + 1)"
+                   class="btn btn-outline-dark @nextDisabled">Next</a>
+            </div>
+        }
+        else{
+            <p class="text-muted">No results found</p>
+        }
+    </div>
+
+    <div class="mt-4 text-start">
+        <a asp-action="Index" asp-controller="@Context.Session.GetString("Redirect")" class="btn btn-secondary">
+            <i class="bi bi-arrow-left-circle me-1"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- RIGHT SIDE OFFCANVAS (DETAIL VIEW) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="reviewPanel" aria-labelledby="reviewPanelLabel">
+    <div class="offcanvas-header">
+        <i class="bi bi-info-circle me-2"></i>
+        <h5 class="offcanvas-title" id="reviewPanelLabel">Requisition Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="border rounded p-3 mb-3 bg-light">
+            <h6>Item Details</h6>
+            <p><strong>Name:</strong> <span id="itemName"></span></p>
+            <p><strong>Description:</strong> <span id="itemDescription"></span></p>
+            <p><strong>Quantity:</strong> <span id="itemQty"></span></p>
+            <p><strong>UoM:</strong> <span id="itemUom"></span></p>
+            <p><strong>Price:</strong> ₹<span id="itemPrice"></span></p>
+            <p><strong>Original Price:</strong> ₹<span id="itemOgPrice"></span></p>
+        </div>
+
+        <div class="border rounded p-3 mb-3 bg-light">
+            <h6>Requester Info</h6>
+            <p><strong>Requested By:</strong> <span id="requestedBy"></span></p>
+            <p><strong>Requested Date:</strong> <span id="requestedDate"></span></p>
+            <p><strong>Last Updated:</strong> <span id="updatedOn"></span></p>
+        </div>
+
+        <div class="border rounded p-3 mb-3 bg-light">
+            <h6>Delivery Info</h6>
+            <p><strong>Delivery Address:</strong> <span id="deliveryAddress"></span></p>
+            <p><strong>Delivery Location:</strong> <span id="deliveryLocation"></span></p>
+        </div>
+
+        <div class="border rounded p-3 mb-3 bg-light">
+            <h6>Other Details</h6>
+            <p><strong>Priority Status:</strong> <span id="priorityBadge"></span></p>
+            <p><strong>Urgent:</strong> <span id="urgentBadge"></span></p>
+            <p><strong>Category:</strong> <span id="categoryName"></span></p>
+            <p><strong>Line Type:</strong> <span id="lineTypeName"></span></p>
+            <p><strong>Status:</strong> <span id="statusBadge" class="badge bg-warning"></span></p>
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-success me-2" id="approveTrigger">Approve</button>
+            <button type="button" class="btn btn-danger" id="rejectTrigger">Reject</button>
+        </div>
+    </div>
+</div>
+
+<!-- APPROVE MODAL -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Approve Requisition</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Send confirmation email to supplier and approve requisition?</p>
+                <div class="border p-3 bg-light rounded">
+                    <p><strong>Supplier:</strong>Dummy Supplier Ltd.</p>
+                    <p><strong>Item:</strong> <span id="approveItem"></span></p>
+                    <p><strong>Total:</strong> ₹<span id="approveTotal"></span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <form asp-action="Index" method="post">
+                    <input type="hidden" value="" id="hdnId" asp-for="SelectedId"/>
+                    <input type="hidden" value="Approve" asp-for="Action" />
+                    <input type="hidden" value="@Context.Session.GetString("UserID")" asp-for="User" />
+                    <input type="submit" value="Send Email" class="btn btn-primary" id="email-btn-backend" />
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REJECT MODAL -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Reject Requisition</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Index" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="hidden" value="Reject" asp-for="Action" />
+                        <input type="hidden" value="" id="hdnIdReject" asp-for="SelectedId" />
+                        <input type="hidden" value="@Context.Session.GetString("UserID")" asp-for="User" />
+                        <label for="rejectComment" class="form-label">Reason for Rejection</label>
+                        <input type="text" asp-for="Comment" class="form-control" placeholder="Write your comment..." required/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <input type="submit" value="Send Rejection Email" class="btn btn-danger" id="reject-btn-backend" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@using System.Text.Json;
+<script>
+    $(document).ready(function () {
+        var offcanvas = new bootstrap.Offcanvas('#reviewPanel');
+        var requisitions = JSON.parse('@Html.Raw(JsonSerializer.Serialize(Model.PendingRequisitions))');
+        var idx = null;
+        var id = null;
+
+        $('.review-btn').click(function () {
+            idx = $(this).closest("td").find(".hdn-idx").val();
+            var data = requisitions[idx];
+            id = data.Id;
+
+            let options = {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+
+            let priority = ""; let priorityClass = "";
+            switch (data.PriorityStatus){
+                case 1: priority = "Immediate Review"; priorityClass = "bg-danger"; break;
+                case 2: priority = "Important"; priorityClass = "bg-info"; break;
+                case 0: priority = "Normal"; priorityClass = "bg-success"; break;
+                default: priority = "Normal"; priorityClass = "bg-success"; break;
+            }
+            $("#priorityBadge").removeClass().addClass("badge " + priorityClass);
+
+            let urgentClass = (data.Urgent === "Yes") ? "bg-danger" : "bg-secondary";
+            $("#urgentBadge").removeClass().addClass("badge " + urgentClass);
+
+            $("#itemName").text(data.ItemName);
+            $("#itemQty").text(data.Quantity);
+            $("#itemUom").text(data.UOM);
+            $("#itemPrice").text(data.CalculatedPrice);
+            $("#itemOgPrice").text(data.OriginalPrice);
+
+            $("#requestedBy").text(data.RequestedBy ?? '-');
+            $("#deliveryAddress").text(data.DeliveryAddress ?? '-');
+            $("#deliveryLocation").text(data.DeliveryLocation ?? '-');
+            $("#requestedDate").text(data.RequestedDate ? new Date(data.RequestedDate).toLocaleDateString('en-GB', options) : '-');
+            $("#updatedOn").text(data.UpdatedOn ? new Date(data.UpdatedOn).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
+            $("#categoryName").text(data.CategoryName ?? '-');
+            $("#lineTypeName").text(data.LineTypeName ?? '-');
+            $("#itemDescription").text(data.ItemDescription ?? '-');
+            $("#priorityBadge").text(priority ?? '-');
+            $("#statusBadge").text(data.Status ?? '-');
+            $("#urgentBadge").text(data.Urgent ?? '-');
+
+            offcanvas.show();
+        });
+
+        $("#approveTrigger").click(function () {
+            $("#approveModal").modal("show");
+
+            var data = requisitions[idx];
+            $("#approveItem").text(data.ItemName);
+            $("#approveTotal").text(data.CalculatedPrice);
+        });
+        $("#rejectTrigger").click(function () {
+            console.log("ID and IDX are = ", id, idx);
+            $("#rejectModal").modal("show");            
+        });
+
+        $("#email-btn-backend").on("click", function(e){
+            $("#hdnId").val(id);
+        });
+
+        $("#reject-btn-backend").on("click", function(e){
+            $("#hdnIdReject").val(id);
+        });
+    });
+</script>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var msg = '@TempData["PurchaseMessage"]';
+
+            if (msg && msg.length > 0) {
+                document.getElementById("purchaseToastBody").innerText = msg;
+
+                var toastEl = document.getElementById('purchaseToast');
+
+                if (msg === "Done") {
+                    toastEl.classList.remove("bg-danger");
+                    toastEl.classList.add("bg-success");
+                } else {
+                    toastEl.classList.remove("bg-success");
+                    toastEl.classList.add("bg-danger");
+                }
+
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        });
+    </script>
+}
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+    <div id="purchaseToast" class="toast align-items-center text-white bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="purchaseToastBody"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>

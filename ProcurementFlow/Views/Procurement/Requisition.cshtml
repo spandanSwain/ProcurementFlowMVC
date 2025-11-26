@@ -1,0 +1,433 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@model ProcurementFlow.Models.Requisition.RequisitionViewModel;
+
+@{
+    ViewData["Title"] = "Requistion";
+}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<div class="container mt-3">
+    <div class="d-flex justify-content-between mb-3">
+        <a asp-controller="Procurement" asp-action="AddNonCatalog" class="btn btn-outline-primary">View Non-Catalog Items</a>
+        <a asp-controller="Procurement" asp-action="CatalogItems" class="btn btn-outline-primary">View Catalog Items</a>
+    </div>
+    <div class="row g-3 mt-2">
+        <div class="col-md-7">
+            <div class="card shadow-sm p-3">
+                <h5 class="fw-bold mb-3">Enter Requisition Line</h5>
+
+                <form id="reqForm" method="post" asp-action="Requisition" asp-controller="Procurement">
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Item</label>
+                            <select id="itemSelect" class="form-select" asp-items="Model.Items" asp-for="SelectedItemID" required>
+                                <option value="">Select Item</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Line Type</label>
+                            <input type="text" class="form-control" disabled id="lineType"/>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Item Description</label>
+                        <input type="text" class="form-control" disabled id="itemDescription"/>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Category</label>
+                            <input type="text" class="form-control" disabled id="category"/>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">UOM</label>
+                            <input type="text" class="form-control" disabled id="uom"/>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Qty</label>
+                            <input type="number" class="form-control" min="1" oninput="this.value = Math.abs(this.value)" id="qty" asp-for="Quantity" required/>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Price (₹)</label>
+                            <input type="text" class="form-control" readonly id="price" asp-for="CalculatedPrice"/>
+                        </div>
+                    </div>
+
+                    <input type="hidden" value="@Context.Session.GetString("UserID")" asp-for="Requestor" />
+                    <input type="hidden" value="@DateTime.Now" asp-for="UpdatedOn"/>
+                    <input type="hidden" asp-for="SelectedRequisitionItemId" id="hdnItemId" />
+                    <input type="hidden" asp-for="Action" id="hdnAction" value="insert"/>
+
+                    <h6 class="fw-bold mt-4">Delivery</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-3 fw-semibold text-primary">
+                                Requestor: <span class="badge bg-light text-dark border">@Context.Session.GetString("Name")</span>
+                            </p>
+                            <label class="form-label fw-semibold">Urgent</label>
+                            <select class="form-select mb-3" asp-for="Urgent" id="ddlUrgent">
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                            <label class="form-label fw-semibold">Requested Delivery Date</label>
+                            <input type="datetime-local" class="form-control" asp-for="RequestedDate" required id="txtRequestedDate"/>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Delivery Location</label>
+                            <input type="text" class="form-control mb-3" asp-for="DeliveryLocation" required id="txtLocation" />
+                            <label class="form-label fw-semibold">Delivery Address</label>
+                            <input type="text" class="form-control" asp-for="DeliveryAddress" required id="txtAddress" />
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a asp-action="Index" asp-controller="@Context.Session.GetString("Redirect")" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left-circle me-1"></i> Back
+                        </a>
+                        <div>
+                            <input type="reset" value="Reset" class="btn btn-secondary ms-2 reset-btn-backend" />
+                            <input type="submit" value="Add Requisition" class="btn btn-primary px-4 ms-2 submit-btn-backend" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card shadow-sm p-2">
+                <h6 class="fw-bold small mb-2">Requisition Overview</h6>
+                <canvas id="reqPie" class="my-2"></canvas>
+                <table class="table table-sm table-bordered text-center mb-0">
+                    <thead>
+                        <tr class="small">
+                            <th>Total</th>
+                            <th>Approved</th>
+                            <th>Rejected</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="small">
+                            <td>@Model.TotalRequisition</td>
+                            <td>@Model.ApprovedRequisition</td>
+                            <td>@Model.RejectedRequisition</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card shadow-sm p-2 mt-3">
+                <h6 class="fw-bold">Recent Requisitions</h6>
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    @if(Model.RequisitionListItems != null && Model.RequisitionListItems.Any()){
+                        <table class="table table-sm table-bordered text-center mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr class="small">
+                                    <th>@Html.DisplayNameFor(m => m.RequisitionListItems![0].RequisitionLineItemName)</th>
+                                    <th>@Html.DisplayNameFor(m => m.RequisitionListItems![0].UpdatedOn)</th>
+                                    <th>@Html.DisplayNameFor(m => m.RequisitionListItems![0].RequestedDate)</th>
+                                    <th>Edit</th>
+                                    <th>Remove</th>
+                                </tr>
+                            </thead>
+                            <tbody class="small">
+                                @foreach (var requisition in Model.RequisitionListItems)
+                                {
+                                    <tr>
+                                        <td hidden>@requisition.Id</td>
+                                        <td>@requisition.RequisitionLineItemName</td>
+                                        <td>@requisition.UpdatedOn</td>
+                                        <td>@requisition.RequestedDate</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary text-white edit-btn">Edit</button>
+                                        </td>
+                                        <td>
+                                            <form asp-action="Requisition" asp-controller="Procurement">
+                                                <input type="hidden" value="@requisition.Id" asp-for="SelectedRequisitionItemId" />
+                                                <input type="hidden" value="delete" asp-for="Action" />
+                                                <input type="submit" value="Remove" class="btn btn-sm btn-danger text-white dlt-btn" />
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <div class="mt-2 @(Model.RequisitionListItems.TotalPages > 1 ? "d-flex justify-content-between":"d-none")">
+                            @{
+                                var prevDisabled = !Model.RequisitionListItems.HasPreviousPage ? "disabled" : "";
+                                var nextDisabled = !Model.RequisitionListItems.HasNextPage ? "disabled" : "";
+                            }
+                            <a asp-action="Requisition"
+                               asp-route-page="@(Model.RequisitionListItems.PageIndex - 1)"
+                               class="btn btn-outline-dark @prevDisabled">Previous</a>
+
+                            <span>Page @Model.RequisitionListItems.PageIndex of @Model.RequisitionListItems.TotalPages</span>
+
+                            <a asp-action="Requisition"
+                               asp-route-page="@(Model.RequisitionListItems.PageIndex + 1)"
+                               class="btn btn-outline-dark @nextDisabled">Next</a>
+                        </div>
+                    }
+                    else{
+                        <p class="text-muted">No results found</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card h6 {
+        font-size: 0.9rem;
+    }
+
+    .table td, .table th {
+        padding: 0.3rem 0.5rem;
+    }
+    #reqPie {
+        max-width: 180px;
+        margin: 0 auto;
+        display: block;
+    }
+
+    @@media (max-width: 576px) {
+        #reqPie
+        {
+            max-width: 100%;
+        }
+    }
+
+    .table thead th {
+        white-space: nowrap;
+        font-size: 0.85rem;
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    console.log(typeof $.fn.select2);
+    let currentPrice = 0;
+
+    $(document).ready(function () { // always init once
+        $("#itemSelect").select2({
+            placeholder: "Select Item",
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Fetch details to input fields on dropdown change
+        $("#itemSelect").on("change", function () {
+            console.log("changed"); // NOT COMPLETED
+            var itemId = parseInt($(this).val())
+            console.log("giving itemId while ddl change = ", itemId);
+            if(!itemId){
+                $("#lineType, #itemDescription, #category, #uom, #price").val('');
+                currentPrice = 0; return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("GetItemDetails", "Procurement")',
+                type: 'GET',
+                data: {itemId: itemId},
+                success: function(response) {
+                    if (response.success) {
+                        var data = response.data;
+                        $("#lineType").val(data.lineType || '-');
+                        $("#itemDescription").val(data.itemDescription || '-');
+                        $("#category").val(data.categoryName || '-');
+                        $("#uom").val(data.uom || '-');
+                        $("#qty").val(1);
+
+                        currentPrice = parseFloat(data.price) || 0;
+                        $("#price").val(currentPrice);
+                    } else {
+                        alert(response.message || "Unable to load item details.");
+                    }
+                },
+                error: function() {
+                    alert("Error fetching item details.");
+                }
+            })
+        });
+    });
+
+    // Fetch details to input fields on dropdown change
+    // $("#itemSelect").on("change", function () {
+    //     console.log("changed");
+    //     var itemId = parseInt($(this).val())
+    //     console.log("giving itemId while ddl change = ", itemId);
+    //     if(!itemId){
+    //         $("#lineType, #itemDescription, #category, #uom, #price").val('');
+    //         currentPrice = 0; return;
+    //     }
+
+    //     $.ajax({
+    //         url: '@Url.Action("GetItemDetails", "Procurement")',
+    //         type: 'GET',
+    //         data: {itemId: itemId},
+    //         success: function(response) {
+    //             if (response.success) {
+    //                 var data = response.data;
+    //                 $("#lineType").val(data.lineType || '-');
+    //                 $("#itemDescription").val(data.itemDescription || '-');
+    //                 $("#category").val(data.categoryName || '-');
+    //                 $("#uom").val(data.uom || '-');
+    //                 $("#qty").val(1);
+
+    //                 currentPrice = parseFloat(data.price) || 0;
+    //                 $("#price").val(currentPrice);
+    //             } else {
+    //                 alert(response.message || "Unable to load item details.");
+    //             }
+    //         },
+    //         error: function() {
+    //             alert("Error fetching item details.");
+    //         }
+    //     })
+    // });
+
+    $("#qty").on("input", function(){
+        let qty = parseInt($("#qty").val());
+        $("#price").val(currentPrice * qty);
+        console.log(currentPrice * qty);
+    });
+
+    // use class instead of ID as Id can be unique and since our rows are dynamically rendered so we use class instead
+    $(document).on("click", ".edit-btn", function(e){
+        e.preventDefault();
+
+        var row = $(this).closest("tr");
+        var id = row.find("td").first().text();
+        console.log("giving id = ", id);
+
+        $("#hdnItemId").val(id);
+        $("#hdnAction").val("edit");
+        $(".submit-btn-backend").val("Update Requisition");
+
+        $.ajax({
+            url: '@Url.Action("GetRequisitionItemDetails", "Procurement")',
+            type: 'GET',
+            data: {lineItemId: id},
+            success: function(response) {
+                if (response.success) {
+                    var data = response.data;
+                    $("#lineType").val(data.lineTypeName || '-');
+                    $("#itemDescription").val(data.itemDescription || '-');
+                    $("#category").val(data.categoryName || '-');
+                    $("#uom").val(data.uom || '-');
+                    $("#price").val(data.calculatedPrice || '0');
+                    $("#qty").val(data.quantity || '1');
+                    $("#txtRequestedDate").val(data.requestedDate.slice(0,16));                    
+                    $("#txtLocation").val(data.deliveryLocation);
+                    $("#txtAddress").val(data.deliveryAddress);
+
+                    var itemVal = data.item.toString();
+
+                    if ($("#itemSelect option[value='" + String(itemVal) + "']").length) {
+                        console.log("not blank");
+                        $("#itemSelect").val(itemVal).trigger('change.select2');
+                    } else {
+                        console.log("why blank");
+                        var newOption = new Option(data.itemName, String(itemVal), true, true);
+                        $("#itemSelect").append(newOption).trigger('change.select2');
+                    }
+
+                    $("#ddlUrgent").val(data.urgent.toString());
+                    currentPrice = data.originalPrice || 0;
+                } else {
+                    alert(response.message || "Unable to load requisition item details.");
+                }
+            },
+            error: function() {
+                alert("Error fetching requisition item details.");
+            }
+        });
+    });
+
+    $(".reset-btn-backend").on("click", function(){
+        $("#hdnItemId").val("");
+        $("#hdnAction").val("insert");
+        $(".submit-btn-backend").val("Add Requisition");
+    });
+
+    $(document).on("click", ".dlt-btn", function(e){
+        e.preventDefault();
+
+        var row = $(this).closest("tr");
+        var id = row.find("td").first().text();
+
+        let form = $(this).closest("form");
+        if(confirm("Are you sure you want to delete this requisition?")){
+            form.submit();
+        }
+    });
+
+</script>
+
+<script>
+    const chartId = document.getElementById("reqPie");
+
+    new Chart(chartId, {
+        type: 'pie',
+        data: {
+            labels: ['Approved', 'Rejected', 'Pending'],
+            datasets: [{
+                data: [
+                    @Model.ApprovedRequisition,
+                    @Model.RejectedRequisition,
+                    @(Model.TotalRequisition - Model.ApprovedRequisition - Model.RejectedRequisition)
+                ],
+                backgroundColor: [
+                    '#4CAF50',
+                    '#E53935',
+                    '#FFC107'
+                ],
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        }
+    });
+</script>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var msg = '@TempData["RequisitionMessage"]';
+
+            if (msg && msg.length > 0) {
+                document.getElementById("requisitionToastBody").innerText = msg;
+
+                var toastEl = document.getElementById('requisitionToast');
+
+                if (msg === "Done") {
+                    toastEl.classList.remove("bg-danger");
+                    toastEl.classList.add("bg-success");
+                } else {
+                    toastEl.classList.remove("bg-success");
+                    toastEl.classList.add("bg-danger");
+                }
+
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        });
+    </script>
+}
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+    <div id="requisitionToast" class="toast align-items-center text-white bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="requisitionToastBody"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>

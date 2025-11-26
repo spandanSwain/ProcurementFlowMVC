@@ -1,0 +1,185 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Procurement";
+}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<div class="container-fluid mt-4">
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <h3 class="fw-bold">Manager Console</h3>
+            <p class="text-muted">Welcome, @Context.Session.GetString("Name")</p>
+        </div>
+        <div class="col-auto">            
+            <form method="post" asp-controller="Procurement" asp-action="Logout" class="m-0">
+                <button type="submit" class="btn btn-light border shadow-sm px-3 py-1">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </form>
+            <span class="badge bg-warning">Manager</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Procurement/Requisition" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon text-warning">
+                        <i class="bi bi-bag-plus"></i>
+                    </div>
+                    <div class="fusion-card-title">Procurement Requisition</div>
+                    <div class="fusion-card-desc">Create a new material request</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Procurement/AddNonCatalog" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon text-warning">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div class="fusion-card-title">Add Non-Catalog Items</div>
+                    <div class="fusion-card-desc">Propose new catalog additions</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Procurement/TransactionConsole" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon text-warning">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <div class="fusion-card-title">Transaction Console</div>
+                    <div class="fusion-card-desc">Track request & approval status</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Procurement/PurchaseOrder" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon text-warning">
+                        <i class="bi bi-file-earmark-plus"></i>
+                    </div>
+                    <div class="fusion-card-title">Add New Purchase Orders</div>
+                    <div class="fusion-card-desc">Finalize quantity and create new purchase requests.</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Procurement/Statistics" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon text-warning">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+                    <div class="fusion-card-title">Dashboard Statistics</div>
+                    <div class="fusion-card-desc">View summary KPIs and procurement trends.</div>
+                </div>
+            </a>
+        </div>
+
+        @* <div class="col-lg-4 col-md-6"> *@
+        @*     <a href="/Procurement/ItemReceipt" class="text-decoration-none"> *@
+        @*         <div class="fusion-card"> *@
+        @*             <div class="fusion-card-icon text-warning"> *@
+        @*                 <i class="bi bi-box-arrow-in-down"></i> *@
+        @*             </div> *@
+        @*             <div class="fusion-card-title">Item Receipt</div> *@
+        @*             <div class="fusion-card-desc">Update and confirm received goods.</div> *@
+        @*         </div> *@
+        @*     </a> *@
+        @* </div> *@
+
+        <div class="col-lg-4 col-md-6">
+            <a href="/Procurement/SummaryDashboard" class="text-decoration-none">
+                <div class="fusion-card">
+                    <div class="fusion-card-icon text-warning">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <div class="fusion-card-title">Summary Dashboards</div>
+                    <div class="fusion-card-desc">Snapshot view for spend, approvals and timelines.</div>
+                </div>
+            </a>
+        </div>
+
+    </div>
+
+    
+    <div class="mt-5"></div>
+
+    <footer class="fusion-footer text-center py-3">
+        <span>© Procurement Suite • Internal Use Only</span>
+    </footer>
+</div>
+
+<style>
+    .menu-card {
+        border-left: 4px solid #005bbb;
+        transition: 0.2s ease;
+        background: white;
+    }
+
+    .menu-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.12);
+        border-left-color: #003f8a;
+    }
+
+    body {
+        background: linear-gradient(to bottom, #fbfcff 0%, #f2f5fa 100%) !important;
+        font-family: "Segoe UI", sans-serif;
+    }
+
+    .user-pill {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #dee1e6;
+        font-weight: 600;
+    }
+
+    .fusion-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 24px 20px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        cursor: pointer;
+        transition: all .25s;
+        text-align: left;
+    }
+
+        .fusion-card:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            transform: translateY(-4px);
+        }
+
+    .fusion-card-icon {
+        font-size: 30px;
+        color: #0077FF;
+        margin-bottom: 14px;
+    }
+
+    .fusion-card-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #1a1c1f;
+    }
+
+    .fusion-card-desc {
+        color: #606366;
+        font-size: 14px;
+    }
+
+    .fusion-footer {
+        color: #7a7d81;
+        font-size: 13px;
+        border-top: 1px solid #e3e4e5;
+        background: #fafbfc;
+    }
+</style>

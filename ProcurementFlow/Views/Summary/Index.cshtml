@@ -1,0 +1,133 @@
+﻿@model ProcurementFlow.Models.SummaryDashboards.SummaryDashboardViewModel;
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Summary Dashsboard";
+}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container py-3">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Manager Dashboard</h2>
+            <p class="text-muted">Welcome, @Context.Session.GetString("Name")</p>
+        </div>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-warning text-dark me-3">Manager</span>            
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <a asp-action="Index" asp-controller="@Context.Session.GetString("Redirect")" class="btn btn-secondary">
+            <i class="bi bi-arrow-left-circle me-1"></i> Back
+        </a>
+    </div>
+    <!-- KPI CARDS -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-2">
+            <div class="card text-center shadow-sm p-3">
+                <div class="fw-semibold">Pending</div>
+                <div class="fs-3 fw-bold" id="kpiPending">@Model.KPICards!.Pending</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center shadow-sm p-3">
+                <div class="fw-semibold">Approved</div>
+                <div class="fs-3 fw-bold" id="kpiApproved">@Model.KPICards.Approved</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center shadow-sm p-3">
+                <div class="fw-semibold">Rejected</div>
+                <div class="fs-3 fw-bold" id="kpiRejected">@Model.KPICards.Rejected</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm p-3">
+                <div class="fw-semibold">Total Spend</div>
+                <div class="fs-3 fw-bold" id="kpiTotalSpend">₹@Model.KPICards.TotalSpend</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm p-3">
+                <div class="fw-semibold">Urgent Spend</div>
+                <div class="fs-3 fw-bold" id="kpiUrgentSpend">₹@Model.KPICards.UrgentSpend</div>
+            </div>
+        </div>
+    </div>
+    <!-- CHARTS -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h5>Category Spend</h5>
+                <canvas id="chartCategorySpend"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h5>Approvals by Manager</h5>
+                <canvas id="chartApprovals"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // SPENDING PER CATEGORY
+    function colorFromString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+        const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+        return `#${"00000".substring(0, 6 - c.length) + c}`;
+    }
+    function colorsForLabels(labels) {
+        return labels.map(label => colorFromString(label));
+    }
+
+    const categoryLabels = @Html.Raw(Json.Serialize(Model.CategorySpend!.Select(x => x.Category)));
+    const categoryValues  = @Html.Raw(Json.Serialize(Model.CategorySpend!.Select(x => x.Spent)));
+
+    const ctxCategory = document.getElementById('chartCategorySpend').getContext('2d');
+    const chartCategorySpend = new Chart(ctxCategory, {
+        type: 'pie',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryValues,
+                backgroundColor: colorsForLabels(categoryLabels)
+            }]
+        },
+        options: { responsive:true }
+    });
+
+    // MANAGER STATISTICS
+    const managerLabels = @Html.Raw(Json.Serialize(Model.ManagerApproveRejectBarChart!.Select(x => x.Manager)));
+    const approvalData = @Html.Raw(Json.Serialize(Model.ManagerApproveRejectBarChart!.Select(x => x.ManagerApproved)));
+    const rejectionData = @Html.Raw(Json.Serialize(Model.ManagerApproveRejectBarChart!.Select(x => x.ManagerRejected)));
+
+    const ctxApproval = document.getElementById('chartApprovals').getContext('2d');
+    const chartApprovals = new Chart(ctxApproval, {
+        type: 'bar',
+        data: {
+            labels: managerLabels,
+            datasets: [{
+                label: 'Approved',
+                data: approvalData,
+                backgroundColor: '#36A2EB'
+            },
+            {
+                label: 'Rejected',
+                data: rejectionData,
+                backgroundColor: '#FF6384'
+            }]
+        },
+        options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
+    });
+</script>
